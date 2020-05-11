@@ -282,6 +282,27 @@ class PageXMLDataset(DataSet):
 
         return words
 
+    def store_words(self, prediction, sample):
+        ns = sample['ns']
+        line = sample['xml_element']
+
+        line_id = line.attrib["id"]
+        textequivelem = line.find("./ns:TextEquiv", namespaces=ns)
+
+        words = self.get_words(prediction, sample)
+
+        for index, word in enumerate(words, 1):
+            word_elem = etree.Element("Word", id=f"{line_id}_w{str(index).zfill(3)}")
+            textequivelem.addprevious(word_elem)
+
+            _points = f'{word["min_x"]},{word["max_y"]} {word["max_x"]},{word["max_y"]} {word["max_x"]},{word["min_y"]} {word["min_x"]},{word["min_y"]}'
+            etree.SubElement(word_elem, "Coords", attrib={"points": _points})
+
+            word_textequivxml = etree.SubElement(word_elem, "TextEquiv", attrib={"index": str(self.text_index)})
+
+            w_xml = etree.SubElement(word_textequivxml, "Unicode")
+            w_xml.text = word["char"]
+
     def prepare_store(self):
         self._last_page_id = None
 
@@ -304,21 +325,7 @@ class PageXMLDataset(DataSet):
         u_xml.text = prediction.sentence
 
         if self.word_level and prediction.positions:
-            line_id = line.attrib["id"]
-
-            words = self.get_words(prediction, sample)
-
-            for index, word in enumerate(words, 1):
-                word_elem = etree.Element("Word", id=f"{line_id}_w{str(index).zfill(3)}")
-                textequivxml.addprevious(word_elem)
-
-                _points = f'{word["min_x"]},{word["max_y"]} {word["max_x"]},{word["max_y"]} {word["max_x"]},{word["min_y"]} {word["min_x"]},{word["min_y"]}'
-                etree.SubElement(word_elem, "Coords", attrib={"points": _points})
-
-                word_textequivxml = etree.SubElement(word_elem, "TextEquiv", attrib={"index": str(self.text_index)})
-
-                w_xml = etree.SubElement(word_textequivxml, "Unicode")
-                w_xml.text = word["char"]
+            self.store_words(prediction, sample)
 
         # check if page can be stored, this requires that (standard in prediction) the pages are passed sequentially
         if self._last_page_id != sample['page_id']:
