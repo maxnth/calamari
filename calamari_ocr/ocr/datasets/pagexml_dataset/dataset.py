@@ -303,7 +303,7 @@ class PageXMLDataset(DataSet):
 
         u_xml.text = prediction.sentence
 
-        if self.word_level:
+        if self.word_level and prediction.positions:
             line_id = line.attrib["id"]
 
             words = self.get_words(prediction, sample)
