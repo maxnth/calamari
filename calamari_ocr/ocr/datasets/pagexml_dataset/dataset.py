@@ -1,3 +1,4 @@
+import itertools
 import os
 import numpy as np
 from PIL import Image
@@ -257,12 +258,20 @@ class PageXMLDataset(DataSet):
 
     @staticmethod
     def get_words(prediction, sample):
+        def remove_leading_spaces(_positions):
+            return list(itertools.dropwhile(lambda p: p[0][0] == " ", _positions))
+
+        def remove_trailing_spaces(_positions):
+            return list(reversed(remove_leading_spaces(reversed(_positions))))
+
         x_coords, y_coords = map(list, zip(*[coord.split(",") for coord in sample['coords'].split()]))
         x, y = [int(x) for x in x_coords], [int(y) for y in y_coords]
         min_x, max_x, min_y, max_y = min(x), max(x), min(y), max(y)
 
         positions = [(pos.chars[0].char, pos.global_start + min_x, pos.global_end + min_x) for pos in
                      prediction.positions]
+        positions = remove_leading_spaces(positions)
+        positions = remove_trailing_spaces(positions)
 
         words = [{"char": positions[0][0], "min_x": positions[0][1], "max_x": positions[0][2],
                   "min_y": min_y, "max_y": max_y}]
@@ -291,17 +300,18 @@ class PageXMLDataset(DataSet):
 
         words = self.get_words(prediction, sample)
 
-        for index, word in enumerate(words, 1):
-            word_elem = etree.Element("Word", id=f"{line_id}_w{str(index).zfill(3)}")
-            textequivelem.addprevious(word_elem)
+        if textequivelem:
+            for index, word in enumerate(words, 1):
+                word_elem = etree.Element("Word", id=f"{line_id}_w{str(index).zfill(3)}")
+                textequivelem.addprevious(word_elem)
 
-            _points = f'{word["min_x"]},{word["max_y"]} {word["max_x"]},{word["max_y"]} {word["max_x"]},{word["min_y"]} {word["min_x"]},{word["min_y"]}'
-            etree.SubElement(word_elem, "Coords", attrib={"points": _points})
+                _points = f'{word["min_x"]},{word["max_y"]} {word["max_x"]},{word["max_y"]} {word["max_x"]},{word["min_y"]} {word["min_x"]},{word["min_y"]}'
+                etree.SubElement(word_elem, "Coords", attrib={"points": _points})
 
-            word_textequivxml = etree.SubElement(word_elem, "TextEquiv", attrib={"index": str(self.text_index)})
+                word_textequivxml = etree.SubElement(word_elem, "TextEquiv", attrib={"index": str(self.text_index)})
 
-            w_xml = etree.SubElement(word_textequivxml, "Unicode")
-            w_xml.text = word["char"]
+                w_xml = etree.SubElement(word_textequivxml, "Unicode")
+                w_xml.text = word["char"]
 
     def prepare_store(self):
         self._last_page_id = None
