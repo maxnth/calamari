@@ -1,6 +1,6 @@
 numpy
 tqdm
-scikit-image>=0.15.0
+scikit-image==0.16.1
 python-bidi
 edit_distance
 xlsxwriter
