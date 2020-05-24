@@ -300,7 +300,7 @@ class PageXMLDataset(DataSet):
 
         words = self.get_words(prediction, sample)
 
-        if textequivelem:
+        if textequivelem and words:
             for index, word in enumerate(words, 1):
                 word_elem = etree.Element("Word", id=f"{line_id}_w{str(index).zfill(3)}")
                 textequivelem.addprevious(word_elem)
