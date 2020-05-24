@@ -273,6 +273,9 @@ class PageXMLDataset(DataSet):
         positions = remove_leading_spaces(positions)
         positions = remove_trailing_spaces(positions)
 
+        if not positions:
+            return
+
         words = [{"char": positions[0][0], "min_x": positions[0][1], "max_x": positions[0][2],
                   "min_y": min_y, "max_y": max_y}]
         new_word = False
@@ -300,7 +303,7 @@ class PageXMLDataset(DataSet):
 
         words = self.get_words(prediction, sample)
 
-        if textequivelem and words:
+        if len(textequivelem) and words:
             for index, word in enumerate(words, 1):
                 word_elem = etree.Element("Word", id=f"{line_id}_w{str(index).zfill(3)}")
                 textequivelem.addprevious(word_elem)
