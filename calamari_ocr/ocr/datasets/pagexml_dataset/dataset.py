@@ -89,23 +89,23 @@ class PageXMLDatasetLoader:
 
     def _samples_gt_from_book(self, root, img, page_id,
                               skipcommented=True):
-        ns = {"ns": root.nsmap[None]}
-        imgfile = root.xpath('//ns:Page',
+        ns = {"pc": "http://schema.primaresearch.org/PAGE/gts/pagecontent/2019-07-15"}
+        imgfile = root.xpath('//pc:Page',
                              namespaces=ns)[0].attrib["imageFilename"]
         if (self.mode == DataSetMode.TRAIN or self.mode == DataSetMode.PRED_AND_EVAL) and not split_all_ext(img)[0].endswith(split_all_ext(imgfile)[0]):
             raise Exception("Mapping of image file to xml file invalid: {} vs {} (comparing basename {} vs {})".format(
                 img, imgfile, split_all_ext(img)[0], split_all_ext(imgfile)[0]))
 
-        img_w = int(root.xpath('//ns:Page',
+        img_w = int(root.xpath('//pc:Page',
                                namespaces=ns)[0].attrib["imageWidth"])
-        textlines = root.xpath('//ns:TextLine', namespaces=ns)
+        textlines = root.xpath('//pc:TextLine', namespaces=ns)
 
         for textline in textlines:
-            tequivs = textline.xpath('./ns:TextEquiv[@index="{}"]'.format(self.text_index),
+            tequivs = textline.xpath('./pc:TextEquiv[@index="{}"]'.format(self.text_index),
                                 namespaces=ns)
 
             if not tequivs:
-                tequivs = textline.xpath('./ns:TextEquiv[not(@index)]', namespaces=ns)
+                tequivs = textline.xpath('./pc:TextEquiv[not(@index)]', namespaces=ns)
 
             if len(tequivs) > 1:
                 logger.warning("PageXML is invalid: TextLine includes TextEquivs with non unique ids")
@@ -116,7 +116,7 @@ class PageXMLDatasetLoader:
 
             if tequivs is not None and len(tequivs) > 0:
                 l = tequivs[0]
-                text = l.xpath('./ns:Unicode', namespaces=ns).pop().text
+                text = l.xpath('./pc:Unicode', namespaces=ns).pop().text
             else:
                 l = None
                 text = None
@@ -142,22 +142,22 @@ class PageXMLDatasetLoader:
                 "image_path": img,
                 "id": xml_attr(textline, ns, './@id'),
                 "text": text,
-                "coords": xml_attr(textline, ns, './ns:Coords/@points'),
+                "coords": xml_attr(textline, ns, './pc:Coords/@points'),
                 "orientation": orientation,
                 "img_width": img_w
             }
 
     def _samples_from_book(self, root, img, page_id):
-        ns = {"ns": root.nsmap[None]}
-        imgfile = root.xpath('//ns:Page',
-                             namespaces=ns)[0].attrib["imageFilename"]
-        if not split_all_ext(img)[0].endswith(split_all_ext(imgfile)[0]):
-            raise Exception("Mapping of image file to xml file invalid: {} vs {} (comparing basename {} vs {})".format(
-                img, imgfile, split_all_ext(img)[0], split_all_ext(imgfile)[0]))
+        ns = {"pc": "http://schema.primaresearch.org/PAGE/gts/pagecontent/2019-07-15"}
+        # imgfile = root.xpath('//pc:Page',
+        #                      namespaces=ns)[0].attrib["imageFilename"]
+        # if not split_all_ext(img)[0].endswith(split_all_ext(imgfile)[0]):
+        #     raise Exception("Mapping of image file to xml file invalid: {} vs {} (comparing basename {} vs {})".format(
+        #         img, imgfile, split_all_ext(img)[0], split_all_ext(imgfile)[0]))
 
-        img_w = int(root.xpath('//ns:Page',
+        img_w = int(root.xpath('//pc:Page',
                                namespaces=ns)[0].attrib["imageWidth"])
-        for l in root.xpath('//ns:TextLine', namespaces=ns):
+        for l in root.xpath('//pc:TextLine', namespaces=ns):
             try:
                 orientation = float(l.xpath('../@orientation', namespaces=ns).pop())
             except (ValueError, IndexError):
@@ -170,7 +170,7 @@ class PageXMLDatasetLoader:
                 'xml_element': l,
                 "image_path": img,
                 "id": xml_attr(l, ns, './@id'),
-                "coords": xml_attr(l, ns, './ns:Coords/@points'),
+                "coords": xml_attr(l, ns, './pc:Coords/@points'),
                 "orientation": orientation,
                 "img_width": img_w,
                 "text": None,
@@ -258,16 +258,16 @@ class PageXMLDataset(DataSet):
         self._last_page_id = None
 
     def store_text(self, sentence, sample, output_dir, extension):
-        ns = sample['ns']
+        ns = {"pc": "http://schema.primaresearch.org/PAGE/gts/pagecontent/2019-07-15"}
         line = sample['xml_element']
-        textequivxml = line.find('./ns:TextEquiv[@index="{}"]'.format(self.text_index),
+        textequivxml = line.find('./pc:TextEquiv[@index="{}"]'.format(self.text_index),
                                     namespaces=ns)
         if textequivxml is None:
-            textequivxml = etree.SubElement(line, "TextEquiv", attrib={"index": str(self.text_index)})
+            textequivxml = etree.SubElement(line, etree.QName(ns["pc"], "TextEquiv"), attrib={"index": str(self.text_index)})
 
-        u_xml = textequivxml.find('./ns:Unicode', namespaces=ns)
+        u_xml = textequivxml.find('./pc:Unicode', namespaces=ns)
         if u_xml is None:
-            u_xml = etree.SubElement(textequivxml, "Unicode")
+            u_xml = etree.SubElement(textequivxml, etree.QName(ns["pc"], "Unicode"))
 
         u_xml.text = sentence
 
